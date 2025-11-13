@@ -465,8 +465,6 @@
             // Generar opciones de medida
             generarOpcionesMedida();
             
-            // Recalcular valor total
-            calcularValorTotal();
         }
         
         // Generar opciones de medida
@@ -495,7 +493,7 @@
                 radio.id = `medida_${index}`;
                 radio.required = true;
                 if (index === 0) radio.checked = true;
-                radio.addEventListener('change', calcularValorTotal);
+                
                 
                 const label = document.createElement('label');
                 label.htmlFor = `medida_${index}`;
@@ -507,19 +505,6 @@
             });
         }
         
-        // Calcular valor total automáticamente
-        function calcularValorTotal() {
-            if (!productoSeleccionado) return;
-            
-            const cantidad = parseFloat(cantidadInput.value) || 0;
-            const costo = parseFloat(productoSeleccionado.costo) || 0;
-            const valorTotal = cantidad * costo;
-            
-            valorTotalInput.value = valorTotal.toFixed(2);
-        }
-        
-        // Recalcular cuando cambia cantidad
-        cantidadInput.addEventListener('input', calcularValorTotal);
         
         // Validar que todos los campos estén llenos
         function validarFormulario() {
