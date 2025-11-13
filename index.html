@@ -624,6 +624,7 @@
         const mensaje = `Entrada de ${cantidad} ${medidaSeleccionada} de ${productoSeleccionado.codigo} por ${valorTotal}`;
         
         const datosCompra = {
+            token: token,
             tenant_id: datosUsuario.tenant_id,
             user_id: datosUsuario.user_id,
             permisos: datosUsuario.permisos, // Ya NO convertir a string aquí
