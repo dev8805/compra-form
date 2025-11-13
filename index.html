@@ -725,6 +725,23 @@ async function enviarCompra() {
             nuevoStock,
             nuevoCosto
         });
+
+        // AGREGAR:
+const payloadMovimiento = {
+    tenant_id: tenantId,
+    producto_id: productoSeleccionado.producto_id,
+    codigo: productoSeleccionado.codigo,
+    cantidad: unidadesIngresadas,
+    tipo: 'entrada',
+    costo_unitario: nuevoCosto,
+    costo_total: valorTotal,
+    razon: `Entrada de ${cantidad} ${medidaSeleccionada}`,
+    user_id: datosUsuario.user_id,
+    activo: true,
+    created_at: new Date().toISOString()
+};
+
+console.log('📤 Payload que se enviará a movimientos_inventario:', JSON.stringify(payloadMovimiento, null, 2));
         
         // ============================================
         // PASO 3: Insertar en movimientos_inventario
@@ -739,25 +756,24 @@ async function enviarCompra() {
                     'Content-Type': 'application/json',
                     'Prefer': 'return=representation'
                 },
-                body: JSON.stringify({
-                    tenant_id: tenantId,
-                    producto_id: productoSeleccionado.producto_id,
-                    codigo: productoSeleccionado.codigo,
-                    cantidad: unidadesIngresadas,
-                    tipo: 'entrada',
-                    costo_unitario: nuevoCosto,
-                    costo_total: valorTotal,
-                    razon: `Entrada de ${cantidad} ${medidaSeleccionada}`,
-                    user_id: datosUsuario.user_id,
-                    activo: true,
-                    created_at: new Date().toISOString()
-                })
+                body: JSON.stringify(payloadMovimiento)
             }
         );
         
         if (!movimientoResponse.ok) {
-            const errorData = await movimientoResponse.json();
-            throw new Error(`Error registrando movimiento: ${errorData.message || 'Error desconocido'}`);
+            const errorText = await movimientoResponse.text();
+console.error('❌ Error Response Status:', movimientoResponse.status);
+console.error('❌ Error Response Headers:', Object.fromEntries(movimientoResponse.headers.entries()));
+console.error('❌ Error Response Body:', errorText);
+
+let errorData;
+try {
+    errorData = JSON.parse(errorText);
+} catch (e) {
+    errorData = { message: errorText };
+}
+
+throw new Error(`Error ${movimientoResponse.status} registrando movimiento: ${errorData.message || errorData.hint || errorText}`);
         }
         
         const movimientoData = await movimientoResponse.json();
@@ -960,11 +976,19 @@ ${fechaActual}
         }, 3000);
         
     } catch (error) {
-        console.error('❌ Error al registrar:', error);
-        mostrarError('Error al registrar la compra: ' + error.message);
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Registrar Compra';
-    }
+    console.error('❌ Error al registrar:', error);
+    console.error('❌ Stack trace:', error.stack);
+    console.error('❌ Datos del contexto:', {
+        tenantId,
+        userId: datosUsuario.user_id,
+        producto: productoSeleccionado?.codigo,
+        cantidad,
+        medida: medidaSeleccionada
+    });
+    mostrarError('Error al registrar la compra: ' + error.message);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Registrar Compra';
+}
 }
         
         // Mostrar errores
