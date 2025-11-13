@@ -847,10 +847,9 @@ throw new Error(`Error ${movimientoResponse.status} registrando movimiento: ${er
             const gastosTotales = parseFloat(cajaActual.gastos_totales) || 0;
             
             cajaEsperada = baseInicial + ventasTotales - gastosTotales - nuevasCompras;
-            const updateCajaResponse = await fetch(
-            
-            await fetch(
-                `${SUPABASE_URL}/rest/v1/caja_diaria?id=eq.${cajaActual.id}`,
+
+const updateCajaResponse = await fetch(
+    `${SUPABASE_URL}/rest/v1/caja_diaria?id=eq.${cajaActual.id}`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -892,20 +891,11 @@ console.log('✅ Caja diaria actualizada');
                 : 0;
             
             cajaEsperada = cajaAnterior - valorTotal;
-            
-            const insertCajaResponse = await fetch(
+
+const insertCajaResponse = await fetch(
     `${SUPABASE_URL}/rest/v1/caja_diaria`,
-                );
-
-if (!insertCajaResponse.ok) {
-    const errorText = await insertCajaResponse.text();
-    console.error('❌ Error creando caja:', errorText);
-    throw new Error('Error creando caja diaria');
-}
-
-console.log('✅ Caja diaria creada');
-                {
-                    method: 'POST',
+    {
+        method: 'POST',
                     headers: {
                         'apikey': SUPABASE_KEY,
                         'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -928,8 +918,14 @@ console.log('✅ Caja diaria creada');
                     })
                 }
             );
-            
-            console.log('✅ Caja diaria creada');
+
+if (!insertCajaResponse.ok) {
+    const errorText = await insertCajaResponse.text();
+    console.error('❌ Error creando caja:', errorText);
+    throw new Error('Error creando caja diaria');
+}
+
+console.log('✅ Caja diaria creada');
         }
         
         // ============================================
