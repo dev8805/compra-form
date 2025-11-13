@@ -317,9 +317,27 @@
         const SUPABASE_URL = 'https://fqujxgwresrdvvfkmdgv.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxdWp4Z3dyZXNyZHZ2ZmttZGd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDc2NzQsImV4cCI6MjA3MDA4MzY3NH0._XwIEgRXVzSYZI7Y6nNZ9jfmrjjIw6Dy1RTP7z0qKCI';
         
-        // Obtener tenant_id de URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const tenantId = urlParams.get('tenant_id') || '7a036f93-cfc9-43d9-8a4f-580064c4d7d4';
+        // Obtener tenant_id y token de URL
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+const tenantId = urlParams.get('tenant_id');
+
+// Validar que vengan los parámetros
+if (!token || !tenantId) {
+    document.body.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div style="background: white; padding: 40px; border-radius: 12px; text-align: center; max-width: 500px;">
+                <h2 style="color: #e74c3c; margin-bottom: 20px;">❌ Error de Acceso</h2>
+                <p style="color: #666; margin-bottom: 20px;">Este enlace no es válido o ha expirado.</p>
+                <p style="color: #888; font-size: 14px;">Por favor, solicita un nuevo enlace escribiendo "registrar compra" por WhatsApp.</p>
+            </div>
+        </div>
+    `;
+    throw new Error('Token o tenant_id no proporcionados');
+}
+
+console.log('Token:', token);
+console.log('Tenant ID:', tenantId);
         
         let productosData = [];
         let productoSeleccionado = null;
