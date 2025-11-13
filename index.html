@@ -230,6 +230,16 @@
         .hidden {
             display: none;
         }
+
+        #btnNuevaCompra {
+    margin-top: 20px;
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+}
+
+#btnNuevaCompra:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(39, 174, 96, 0.4);
+}
         
         .info-stock {
             font-size: 12px;
@@ -837,6 +847,7 @@ throw new Error(`Error ${movimientoResponse.status} registrando movimiento: ${er
             const gastosTotales = parseFloat(cajaActual.gastos_totales) || 0;
             
             cajaEsperada = baseInicial + ventasTotales - gastosTotales - nuevasCompras;
+            const updateCajaResponse = await fetch(
             
             await fetch(
                 `${SUPABASE_URL}/rest/v1/caja_diaria?id=eq.${cajaActual.id}`,
@@ -854,8 +865,14 @@ throw new Error(`Error ${movimientoResponse.status} registrando movimiento: ${er
                     })
                 }
             );
-            
-            console.log('✅ Caja diaria actualizada');
+
+if (!updateCajaResponse.ok) {
+    const errorText = await updateCajaResponse.text();
+    console.error('❌ Error actualizando caja:', errorText);
+    throw new Error('Error actualizando caja diaria');
+}
+
+console.log('✅ Caja diaria actualizada');
         } else {
             // Crear nuevo registro de caja
             // Buscar caja del día anterior
@@ -876,8 +893,17 @@ throw new Error(`Error ${movimientoResponse.status} registrando movimiento: ${er
             
             cajaEsperada = cajaAnterior - valorTotal;
             
-            await fetch(
-                `${SUPABASE_URL}/rest/v1/caja_diaria`,
+            const insertCajaResponse = await fetch(
+    `${SUPABASE_URL}/rest/v1/caja_diaria`,
+                );
+
+if (!insertCajaResponse.ok) {
+    const errorText = await insertCajaResponse.text();
+    console.error('❌ Error creando caja:', errorText);
+    throw new Error('Error creando caja diaria');
+}
+
+console.log('✅ Caja diaria creada');
                 {
                     method: 'POST',
                     headers: {
@@ -959,21 +985,23 @@ ${fechaActual}
         
         mostrarExito(mensajeExito);
         
-        // Resetear formulario después de 3 segundos
-        setTimeout(() => {
-            productoInput.value = '';
-            cantidadInput.value = '';
-            valorTotalInput.value = '';
-            productoSeleccionado = null;
-            medidaOptionsDiv.innerHTML = '<p style="color: #888;">Selecciona un producto primero</p>';
-            stockInfo.textContent = '';
-            successDiv.classList.add('hidden');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Registrar Compra';
-            
-            // Recargar productos para actualizar stock
-            cargarProductos();
-        }, 3000);
+        // Ocultar formulario y mostrar botón de nueva compra
+document.getElementById('compraForm').classList.add('hidden');
+submitBtn.classList.add('hidden');
+
+// Crear botón de nueva compra si no existe
+let btnNuevaCompra = document.getElementById('btnNuevaCompra');
+if (!btnNuevaCompra) {
+    btnNuevaCompra = document.createElement('button');
+    btnNuevaCompra.id = 'btnNuevaCompra';
+    btnNuevaCompra.textContent = '➕ Registrar Nueva Compra';
+    btnNuevaCompra.onclick = resetearFormulario;
+    successDiv.insertAdjacentElement('afterend', btnNuevaCompra);
+}
+btnNuevaCompra.classList.remove('hidden');
+
+// Recargar productos para actualizar stock
+cargarProductos();
         
     } catch (error) {
     console.error('❌ Error al registrar:', error);
@@ -1005,6 +1033,28 @@ ${fechaActual}
             successDiv.classList.remove('hidden');
             errorDiv.classList.add('hidden');
         }
+
+        // Resetear formulario para nueva compra
+function resetearFormulario() {
+    productoInput.value = '';
+    cantidadInput.value = '';
+    valorTotalInput.value = '';
+    productoSeleccionado = null;
+    medidaOptionsDiv.innerHTML = '<p style="color: #888;">Selecciona un producto primero</p>';
+    stockInfo.textContent = '';
+    successDiv.classList.add('hidden');
+    errorDiv.classList.add('hidden');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Registrar Compra';
+    
+    // Mostrar formulario y ocultar botón de nueva compra
+    document.getElementById('compraForm').classList.remove('hidden');
+    submitBtn.classList.remove('hidden');
+    document.getElementById('btnNuevaCompra')?.classList.add('hidden');
+    
+    // Focus en el input de producto
+    productoInput.focus();
+}
         
         // Cerrar autocomplete al hacer click afuera
         document.addEventListener('click', (e) => {
