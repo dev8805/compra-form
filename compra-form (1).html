@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Compra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .nombre-negocio {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+        
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .autocomplete-list.active {
+            display: block;
+        }
+        
+        .autocomplete-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        
+        .autocomplete-item:hover {
+            background-color: #f5f7ff;
+        }
+        
+        .autocomplete-item-nombre {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .autocomplete-item-codigo {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .medida-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .radio-group input[type="radio"] {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+        
+        .radio-group label {
+            margin-bottom: 0;
+            font-weight: 400;
+        }
+        
+        .valor-total {
+            background: #f5f7ff;
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .valor-total-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .valor-total-input {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+        
+        .valor-total-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .error {
+            background-color: #fee;
+            border: 2px solid #f99;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .success {
+            background-color: #efe;
+            border: 2px solid #9f9;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .info-stock {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="nombre-negocio" id="nombreNegocio">Cargando...</div>
+            <h1>📦 Registrar Compra</h1>
+        </div>
+        
+        <div id="error" class="error hidden"></div>
+        <div id="success" class="success hidden"></div>
+        
+        <form id="compraForm">
+            <!-- Producto con autocompletado -->
+            <div class="form-group">
+                <label for="producto" class="required">Producto</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="producto" 
+                        placeholder="Escribe para buscar..." 
+                        autocomplete="off"
+                        required
+                    >
+                    <div class="autocomplete-list" id="autocompleteList"></div>
+                </div>
+                <div class="info-stock" id="stockInfo"></div>
+            </div>
+            
+            <!-- Medida de Compra -->
+            <div class="form-group">
+                <label class="required">Medida de Compra</label>
+                <div class="medida-options" id="medidaOptions">
+                    <p style="color: #888;">Selecciona un producto primero</p>
+                </div>
+            </div>
+            
+            <!-- Cantidad -->
+            <div class="form-group">
+                <label for="cantidad" class="required">Cantidad</label>
+                <input 
+                    type="number" 
+                    id="cantidad" 
+                    placeholder="Ej: 5" 
+                    step="0.01" 
+                    required
+                >
+            </div>
+            
+            <!-- Valor Total (editable) -->
+            <div class="form-group">
+                <label for="valorTotalInput" class="required">Valor Total Compra</label>
+                <div class="valor-total">
+                    <input 
+                        type="number" 
+                        id="valorTotalInput" 
+                        placeholder="0" 
+                        step="0.01"
+                        required
+                        class="valor-total-input"
+                    >
+                </div>
+            </div>
+            
+            <button type="submit">Registrar Compra</button>
+        </form>
+    </div>
+    
+    <script>
+        // Configuración de Supabase
+        const SUPABASE_URL = 'https://fqujxgwresrdvvfkmdgv.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxdWp4Z3dyZXNyZHZ2ZmttZGd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDc2NzQsImV4cCI6MjA3MDA4MzY3NH0._XwIEgRXVzSYZI7Y6nNZ9jfmrjjIw6Dy1RTP7z0qKCI';
+        
+        // Obtener tenant_id y token de URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const tenantId = urlParams.get('tenant_id');
+        
+        let productosData = [];
+        let productoSeleccionado = null;
+        
+        // Elementos del DOM
+        const productoInput = document.getElementById('producto');
+        const autocompleteList = document.getElementById('autocompleteList');
+        const cantidadInput = document.getElementById('cantidad');
+        const valorTotalInput = document.getElementById('valorTotalInput');
+        const medidaOptionsDiv = document.getElementById('medidaOptions');
+        const compraForm = document.getElementById('compraForm');
+        const errorDiv = document.getElementById('error');
+        const successDiv = document.getElementById('success');
+        const stockInfo = document.getElementById('stockInfo');
+        const nombreNegocioDiv = document.getElementById('nombreNegocio');
+        
+        // Cargar nombre del negocio
+        async function cargarNombreNegocio() {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/tenants?id=eq.${tenantId}&select=nombre_negocio`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    }
+                );
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.length > 0) {
+                        nombreNegocioDiv.textContent = data[0].nombre_negocio.toUpperCase();
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando nombre negocio:', error);
+                nombreNegocioDiv.textContent = 'Negocio';
+            }
+        }
+        
+        // Cargar productos de Supabase
+        async function cargarProductos() {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/productos?tenant_id=eq.${tenantId}&activo=eq.true`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    }
+                );
+                
+                if (!response.ok) throw new Error('Error al cargar productos');
+                
+                productosData = await response.json();
+                
+            } catch (error) {
+                mostrarError('Error cargando productos: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        // Filtrar y mostrar autocomplete
+        productoInput.addEventListener('input', (e) => {
+            const valor = e.target.value.toLowerCase();
+            
+            if (valor.length === 0) {
+                autocompleteList.classList.remove('active');
+                return;
+            }
+            
+            const filtrados = productosData.filter(p => 
+                p.producto.toLowerCase().includes(valor) ||
+                p.codigo.toLowerCase().includes(valor)
+            );
+            
+            mostrarAutocomplete(filtrados);
+        });
+        
+        // Mostrar lista de autocompletado
+        function mostrarAutocomplete(productos) {
+            autocompleteList.innerHTML = '';
+            
+            if (productos.length === 0) {
+                autocompleteList.classList.remove('active');
+                return;
+            }
+            
+            productos.forEach(prod => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.innerHTML = `
+                    <div class="autocomplete-item-nombre">${prod.producto}</div>
+                    <div class="autocomplete-item-codigo">${prod.codigo}</div>
+                `;
+                div.addEventListener('click', () => seleccionarProducto(prod));
+                autocompleteList.appendChild(div);
+            });
+            
+            autocompleteList.classList.add('active');
+        }
+        
+        // Seleccionar producto del autocomplete
+        function seleccionarProducto(producto) {
+            productoSeleccionado = producto;
+            productoInput.value = `${producto.producto} (${producto.codigo})`;
+            autocompleteList.classList.remove('active');
+            
+            // Mostrar stock
+            stockInfo.textContent = `Stock actual: ${producto.stock_actual} ${producto.unidad_peso}`;
+            
+            // Generar opciones de medida
+            generarOpcionesMedida();
+            
+            // Recalcular valor total
+            calcularValorTotal();
+        }
+        
+        // Generar opciones de medida
+        function generarOpcionesMedida() {
+            medidaOptionsDiv.innerHTML = '';
+            
+            const medidas = [
+                {
+                    value: productoSeleccionado.unidad_peso,
+                    label: productoSeleccionado.unidad_peso
+                },
+                {
+                    value: productoSeleccionado.unidad_compra,
+                    label: productoSeleccionado.unidad_compra
+                }
+            ];
+            
+            medidas.forEach((medida, index) => {
+                const div = document.createElement('div');
+                div.className = 'radio-group';
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'medida';
+                radio.value = medida.value;
+                radio.id = `medida_${index}`;
+                radio.required = true;
+                if (index === 0) radio.checked = true;
+                radio.addEventListener('change', calcularValorTotal);
+                
+                const label = document.createElement('label');
+                label.htmlFor = `medida_${index}`;
+                label.textContent = medida.label;
+                
+                div.appendChild(radio);
+                div.appendChild(label);
+                medidaOptionsDiv.appendChild(div);
+            });
+        }
+        
+        // Calcular valor total automáticamente
+        function calcularValorTotal() {
+            if (!productoSeleccionado) return;
+            
+            const cantidad = parseFloat(cantidadInput.value) || 0;
+            const costo = parseFloat(productoSeleccionado.costo) || 0;
+            const valorTotal = cantidad * costo;
+            
+            valorTotalInput.value = valorTotal.toFixed(2);
+        }
+        
+        // Recalcular cuando cambia cantidad
+        cantidadInput.addEventListener('input', calcularValorTotal);
+        
+        // Validar que todos los campos estén llenos
+        function validarFormulario() {
+            if (!productoSeleccionado) {
+                mostrarError('Debes seleccionar un producto');
+                return false;
+            }
+            
+            if (!cantidadInput.value) {
+                mostrarError('La cantidad es obligatoria');
+                return false;
+            }
+            
+            if (!valorTotalInput.value) {
+                mostrarError('El valor total es obligatorio');
+                return false;
+            }
+            
+            if (!document.querySelector('input[name="medida"]:checked')) {
+                mostrarError('Debes seleccionar una medida de compra');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Enviar formulario
+        compraForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!validarFormulario()) return;
+            
+            const medidaSeleccionada = document.querySelector('input[name="medida"]:checked')?.value;
+            const cantidad = parseFloat(cantidadInput.value);
+            const valorTotal = parseFloat(valorTotalInput.value);
+            
+            const datosCompra = {
+                producto_id: productoSeleccionado.producto_id,
+                tenant_id: tenantId,
+                producto: productoSeleccionado.producto,
+                medida_compra: medidaSeleccionada,
+                cantidad: cantidad,
+                valor_total: valorTotal,
+                costo_unitario: productoSeleccionado.costo,
+                created_at: new Date().toISOString()
+            };
+            
+            console.log('Datos a enviar:', datosCompra);
+            mostrarExito('Compra registrada correctamente');
+            
+            // Resetear formulario
+            setTimeout(() => {
+                compraForm.reset();
+                productoSeleccionado = null;
+                medidaOptionsDiv.innerHTML = '<p style="color: #888;">Selecciona un producto primero</p>';
+                stockInfo.textContent = '';
+                successDiv.classList.add('hidden');
+            }, 2000);
+        });
+        
+        // Mostrar errores
+        function mostrarError(mensaje) {
+            errorDiv.textContent = mensaje;
+            errorDiv.classList.remove('hidden');
+            successDiv.classList.add('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 4000);
+        }
+        
+        // Mostrar éxito
+        function mostrarExito(mensaje) {
+            successDiv.textContent = mensaje;
+            successDiv.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+        }
+        
+        // Cerrar autocomplete al hacer click afuera
+        document.addEventListener('click', (e) => {
+            if (e.target !== productoInput) {
+                autocompleteList.classList.remove('active');
+            }
+        });
+        
+        // Inicializar
+        cargarNombreNegocio();
+        cargarProductos();
+    </script>
+</body>
+</html>
