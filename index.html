@@ -384,9 +384,9 @@
 
         // Obtener datos del usuario desde el token
         async function obtenerDatosUsuario() {
-            try {
-                const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/form_tokens?token=eq.${token}&select=*`,
+    try {
+        const response = await fetch(
+            `${SUPABASE_URL}/rest/v1/form_tokens?token=eq.${token}&tenant_id=eq.${tenantId}&select=*`,
                     {
                         headers: {
                             'apikey': SUPABASE_KEY,
@@ -414,17 +414,28 @@
                         if (userResponse.ok) {
                             const userData = await userResponse.json();
                             if (userData.length > 0) {
-                                datosUsuario = {
-                                    tenant_id: tokenData.tenant_id,
-                                    user_id: tokenData.user_id,
-                                    numero_telefono: userData[0].numero_telefono,
-                                    nombre_usuario: userData[0].nombre,
-                                    permisos: userData[0].permisos,
-                                    rol: userData[0].rol,
-                                    instancia: userData[0].instancia || 'default'
-                                };
-                                console.log('Datos usuario cargados:', datosUsuario);
-                            }
+    // Parsear permisos si vienen como string desde la base de datos
+    let permisos = userData[0].permisos;
+    if (typeof permisos === 'string') {
+        try {
+            permisos = JSON.parse(permisos);
+        } catch (e) {
+            console.error('Error parseando permisos:', e);
+            permisos = {};
+        }
+    }
+    
+    datosUsuario = {
+        tenant_id: tokenData.tenant_id,
+        user_id: tokenData.user_id,
+        numero_telefono: userData[0].numero_telefono,
+        nombre_usuario: userData[0].nombre,
+        permisos: permisos, // Ya parseado como objeto
+        rol: userData[0].rol,
+        instancia: userData[0].instancia || 'default'
+    };
+    console.log('Datos usuario cargados:', datosUsuario);
+}
                         }
                     }
                 }
@@ -599,32 +610,32 @@
         
         // Enviar compra
         async function enviarCompra() {
-            if (!validarFormulario()) return;
-            
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Registrando...';
-            
-            try {
-                const medidaSeleccionada = document.querySelector('input[name="medida"]:checked')?.value;
-                const cantidad = parseFloat(cantidadInput.value);
-                const valorTotal = parseFloat(valorTotalInput.value);
-                
-                // Formatear el mensaje como lo espera el flujo "ingresan Productos A Inventario"
-                const mensaje = `Entrada de ${cantidad} ${medidaSeleccionada} de ${productoSeleccionado.codigo} por ${valorTotal}`;
-                
-                const datosCompra = {
-                    tenant_id: datosUsuario.tenant_id,
-                    user_id: datosUsuario.user_id,
-                    permisos: JSON.stringify(datosUsuario.permisos),
-                    rol: datosUsuario.rol,
-                    nombre_usuario: datosUsuario.nombre_usuario,
-                    mensaje: mensaje,
-                    numero_telefono: datosUsuario.numero_telefono,
-                    date_time: new Date().toISOString().split('T')[0],
-                    instancia: datosUsuario.instancia,
-                    autorizado: true,
-                    zona_horaria: 'America/Bogota'
-                };
+    if (!validarFormulario()) return;
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Registrando...';
+    
+    try {
+        const medidaSeleccionada = document.querySelector('input[name="medida"]:checked')?.value;
+        const cantidad = parseFloat(cantidadInput.value);
+        const valorTotal = parseFloat(valorTotalInput.value);
+        
+        // Formatear el mensaje como lo espera el flujo "ingresan Productos A Inventario"
+        const mensaje = `Entrada de ${cantidad} ${medidaSeleccionada} de ${productoSeleccionado.codigo} por ${valorTotal}`;
+        
+        const datosCompra = {
+            tenant_id: datosUsuario.tenant_id,
+            user_id: datosUsuario.user_id,
+            permisos: datosUsuario.permisos, // Ya NO convertir a string aquí
+            rol: datosUsuario.rol,
+            nombre_usuario: datosUsuario.nombre_usuario,
+            mensaje: mensaje,
+            numero_telefono: datosUsuario.numero_telefono,
+            date_time: new Date().toISOString().split('T')[0],
+            instancia: datosUsuario.instancia,
+            autorizado: true,
+            zona_horaria: 'America/Bogota'
+        };
                 
                 console.log('Datos a enviar:', datosCompra);
 
