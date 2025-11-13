@@ -983,7 +983,7 @@ ${fechaActual}
         userId: datosUsuario.user_id,
         producto: productoSeleccionado?.codigo,
         cantidad,
-        medida: medidaSeleccionada
+        medida: document.querySelector('input[name="medida"]:checked')?.value
     });
     mostrarError('Error al registrar la compra: ' + error.message);
     submitBtn.disabled = false;
