@@ -256,7 +256,7 @@
         
         <div class="debug-info" id="debugInfo">Cargando productos...</div>
         
-        <form id="compraForm">
+        <div id="compraForm">
             <!-- Producto con autocompletado -->
             <div class="form-group">
                 <label for="producto" class="required">Producto</label>
@@ -308,8 +308,8 @@
                 </div>
             </div>
             
-            <button type="submit" id="submitBtn">Registrar Compra</button>
-        </form>
+            <button type="button" id="submitBtn" onclick="enviarCompra()">Registrar Compra</button>
+        </div>
     </div>
     
     <script>
@@ -317,30 +317,31 @@
         const SUPABASE_URL = 'https://fqujxgwresrdvvfkmdgv.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxdWp4Z3dyZXNyZHZ2ZmttZGd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDc2NzQsImV4cCI6MjA3MDA4MzY3NH0._XwIEgRXVzSYZI7Y6nNZ9jfmrjjIw6Dy1RTP7z0qKCI';
         
-        // Obtener tenant_id y token de URL
-const urlParams = new URLSearchParams(window.location.search);
-const token = urlParams.get('token');
-const tenantId = urlParams.get('tenant_id');
+        // Obtener token y tenant_id de URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const tenantId = urlParams.get('tenant_id');
 
-// Validar que vengan los parámetros
-if (!token || !tenantId) {
-    document.body.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <div style="background: white; padding: 40px; border-radius: 12px; text-align: center; max-width: 500px;">
-                <h2 style="color: #e74c3c; margin-bottom: 20px;">❌ Error de Acceso</h2>
-                <p style="color: #666; margin-bottom: 20px;">Este enlace no es válido o ha expirado.</p>
-                <p style="color: #888; font-size: 14px;">Por favor, solicita un nuevo enlace escribiendo "registrar compra" por WhatsApp.</p>
-            </div>
-        </div>
-    `;
-    throw new Error('Token o tenant_id no proporcionados');
-}
+        // Validar parámetros
+        if (!token || !tenantId) {
+            document.body.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div style="background: white; padding: 40px; border-radius: 12px; text-align: center; max-width: 500px;">
+                        <h2 style="color: #e74c3c; margin-bottom: 20px;">❌ Error de Acceso</h2>
+                        <p style="color: #666; margin-bottom: 20px;">Este enlace no es válido o ha expirado.</p>
+                        <p style="color: #888; font-size: 14px;">Por favor, solicita un nuevo enlace escribiendo "registrar compra" por WhatsApp.</p>
+                    </div>
+                </div>
+            `;
+            throw new Error('Token o tenant_id no proporcionados');
+        }
 
-console.log('Token:', token);
-console.log('Tenant ID:', tenantId);
+        console.log('Token:', token);
+        console.log('Tenant ID:', tenantId);
         
         let productosData = [];
         let productoSeleccionado = null;
+        let datosUsuario = {};
         
         // Elementos del DOM
         const productoInput = document.getElementById('producto');
@@ -348,7 +349,6 @@ console.log('Tenant ID:', tenantId);
         const cantidadInput = document.getElementById('cantidad');
         const valorTotalInput = document.getElementById('valorTotalInput');
         const medidaOptionsDiv = document.getElementById('medidaOptions');
-        const compraForm = document.getElementById('compraForm');
         const errorDiv = document.getElementById('error');
         const successDiv = document.getElementById('success');
         const stockInfo = document.getElementById('stockInfo');
@@ -379,6 +379,57 @@ console.log('Tenant ID:', tenantId);
             } catch (error) {
                 console.error('Error cargando nombre negocio:', error);
                 nombreNegocioDiv.textContent = 'MI NEGOCIO';
+            }
+        }
+
+        // Obtener datos del usuario desde el token
+        async function obtenerDatosUsuario() {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/form_tokens?token=eq.${token}&select=*`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    }
+                );
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.length > 0) {
+                        const tokenData = data[0];
+                        
+                        // Obtener datos del usuario
+                        const userResponse = await fetch(
+                            `${SUPABASE_URL}/rest/v1/usuarios?user_id=eq.${tokenData.user_id}&select=*`,
+                            {
+                                headers: {
+                                    'apikey': SUPABASE_KEY,
+                                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                                }
+                            }
+                        );
+                        
+                        if (userResponse.ok) {
+                            const userData = await userResponse.json();
+                            if (userData.length > 0) {
+                                datosUsuario = {
+                                    tenant_id: tokenData.tenant_id,
+                                    user_id: tokenData.user_id,
+                                    numero_telefono: userData[0].numero_telefono,
+                                    nombre_usuario: userData[0].nombre,
+                                    permisos: userData[0].permisos,
+                                    rol: userData[0].rol,
+                                    instancia: userData[0].instancia || 'default'
+                                };
+                                console.log('Datos usuario cargados:', datosUsuario);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error obteniendo datos usuario:', error);
             }
         }
         
@@ -482,7 +533,6 @@ console.log('Tenant ID:', tenantId);
             
             // Generar opciones de medida
             generarOpcionesMedida();
-            
         }
         
         // Generar opciones de medida
@@ -512,7 +562,6 @@ console.log('Tenant ID:', tenantId);
                 radio.required = true;
                 if (index === 0) radio.checked = true;
                 
-                
                 const label = document.createElement('label');
                 label.htmlFor = `medida_${index}`;
                 label.textContent = medida.label;
@@ -522,7 +571,6 @@ console.log('Tenant ID:', tenantId);
                 medidaOptionsDiv.appendChild(div);
             });
         }
-        
         
         // Validar que todos los campos estén llenos
         function validarFormulario() {
@@ -549,10 +597,8 @@ console.log('Tenant ID:', tenantId);
             return true;
         }
         
-        // Enviar formulario
-        compraForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
+        // Enviar compra
+        async function enviarCompra() {
             if (!validarFormulario()) return;
             
             submitBtn.disabled = true;
@@ -563,41 +609,48 @@ console.log('Tenant ID:', tenantId);
                 const cantidad = parseFloat(cantidadInput.value);
                 const valorTotal = parseFloat(valorTotalInput.value);
                 
+                // Formatear el mensaje como lo espera el flujo "ingresan Productos A Inventario"
+                const mensaje = `Entrada de ${cantidad} ${medidaSeleccionada} de ${productoSeleccionado.codigo} por ${valorTotal}`;
+                
                 const datosCompra = {
-                    producto_id: productoSeleccionado.producto_id,
-                    tenant_id: tenantId,
-                    producto: productoSeleccionado.producto,
-                    codigo: productoSeleccionado.codigo,
-                    medida_compra: medidaSeleccionada,
-                    cantidad: cantidad,
-                    valor_total: valorTotal,
-                    costo_unitario: (valorTotal / cantidad).toFixed(2),
-                    created_at: new Date().toISOString()
+                    tenant_id: datosUsuario.tenant_id,
+                    user_id: datosUsuario.user_id,
+                    permisos: JSON.stringify(datosUsuario.permisos),
+                    rol: datosUsuario.rol,
+                    nombre_usuario: datosUsuario.nombre_usuario,
+                    mensaje: mensaje,
+                    numero_telefono: datosUsuario.numero_telefono,
+                    date_time: new Date().toISOString().split('T')[0],
+                    instancia: datosUsuario.instancia,
+                    autorizado: true,
+                    zona_horaria: 'America/Bogota'
                 };
                 
                 console.log('Datos a enviar:', datosCompra);
 
-// Enviar al webhook de n8n
-const response = await fetch('https://n8n-n8n.aa7tej.easypanel.host/webhook/compras-form', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(datosCompra)
-});
+                // Enviar al webhook de n8n
+                const response = await fetch('https://n8n-n8n.aa7tej.easypanel.host/webhook/compras-form', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(datosCompra)
+                });
 
-if (!response.ok) {
-    throw new Error('Error al enviar los datos al servidor');
-}
+                if (!response.ok) {
+                    throw new Error('Error al enviar los datos al servidor');
+                }
 
-const resultado = await response.json();
-console.log('Respuesta del servidor:', resultado);
+                const resultado = await response.json();
+                console.log('Respuesta del servidor:', resultado);
 
-mostrarExito('✅ Compra registrada correctamente');
+                mostrarExito('✅ Compra registrada correctamente');
                 
                 // Resetear formulario
                 setTimeout(() => {
-                    compraForm.reset();
+                    productoInput.value = '';
+                    cantidadInput.value = '';
+                    valorTotalInput.value = '';
                     productoSeleccionado = null;
                     medidaOptionsDiv.innerHTML = '<p style="color: #888;">Selecciona un producto primero</p>';
                     stockInfo.textContent = '';
@@ -612,7 +665,7 @@ mostrarExito('✅ Compra registrada correctamente');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Registrar Compra';
             }
-        });
+        }
         
         // Mostrar errores
         function mostrarError(mensaje) {
@@ -639,6 +692,7 @@ mostrarExito('✅ Compra registrada correctamente');
         // Inicializar
         console.log('Tenant ID:', tenantId);
         cargarNombreNegocio();
+        obtenerDatosUsuario();
         cargarProductos();
     </script>
 </body>
