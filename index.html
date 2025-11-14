@@ -998,20 +998,21 @@ ${fechaActual}
         mostrarExito(mensajeExito);
 
         // Guardar datos para posible reversa
-        window.ultimaCompra = {
-            movimientoId: movimientoData[0].movimiento_id,
-            productoId: productoSeleccionado.producto_id,
-            unidadesIngresadas,
-            stockAnterior,
-            nuevoStock,
-            costoAnterior: productoSeleccionado.costo,
-            nuevoCosto,
-            valorTotal,
-            cajaEsperada,
-            fechaSQL,
-            producto: productoSeleccionado.producto,
-            codigo: productoSeleccionado.codigo
-        };
+window.ultimaCompra = {
+    movimientoId: movimientoData[0].movimiento_id,
+    productoId: productoSeleccionado.producto_id,
+    userId: datosUsuario.user_id, // ← AGREGADO
+    unidadesIngresadas,
+    stockAnterior,
+    nuevoStock,
+    costoAnterior: productoSeleccionado.costo,
+    nuevoCosto,
+    valorTotal,
+    cajaEsperada,
+    fechaSQL,
+    producto: productoSeleccionado.producto,
+    codigo: productoSeleccionado.codigo
+};
         
         // Ocultar formulario y mostrar botón de nueva compra
 document.getElementById('compraForm').classList.add('hidden');
@@ -1098,7 +1099,7 @@ function resetearFormulario() {
     // Focus en el input de producto
     productoInput.focus();
 }
-        // ============================================
+       // ============================================
 // REVERSAR COMPRA
 // ============================================
 async function reversarCompra() {
@@ -1119,7 +1120,8 @@ async function reversarCompra() {
     try {
         const { 
             movimientoId, 
-            productoId, 
+            productoId,
+            userId, // ← AGREGADO
             stockAnterior, 
             costoAnterior, 
             valorTotal, 
@@ -1144,7 +1146,7 @@ async function reversarCompra() {
                     'Prefer': 'return=representation'
                 },
                 body: JSON.stringify({
-                    activo: false,
+                    activo: false, // ← YA ESTABA BIEN
                     updated_at: new Date().toISOString(),
                     observacion: 'Movimiento reversado'
                 })
@@ -1174,7 +1176,7 @@ async function reversarCompra() {
                     stock_actual: stockAnterior,
                     costo: costoAnterior,
                     updated_at: new Date().toISOString(),
-                    updated_by: datosUsuario.user_id
+                    updated_by: userId // ← CAMBIADO: ahora usa el userId guardado
                 })
             }
         );
@@ -1205,6 +1207,7 @@ async function reversarCompra() {
         }
         
         const cajaData = await cajaResponse.json();
+        let cajaEsperadaRestaurada = 0; // ← CAMBIADO: declarar aquí para usarla después
         
         if (cajaData.length > 0) {
             const cajaActual = cajaData[0];
@@ -1215,7 +1218,7 @@ async function reversarCompra() {
             const ventasTotales = parseFloat(cajaActual.ventas_totales) || 0;
             const gastosTotales = parseFloat(cajaActual.gastos_totales) || 0;
             
-            const cajaEsperadaRestaurada = baseInicial + ventasTotales - gastosTotales - nuevasCompras;
+            cajaEsperadaRestaurada = baseInicial + ventasTotales - gastosTotales - nuevasCompras;
             
             const updateCajaResponse = await fetch(
                 `${SUPABASE_URL}/rest/v1/caja_diaria?id=eq.${cajaActual.id}`,
@@ -1245,6 +1248,7 @@ async function reversarCompra() {
         // PASO 4: Mostrar confirmación
         // ============================================
         const valorFormateado = `$${valorTotal.toLocaleString('es-CO', {maximumFractionDigits: 0})}`;
+        const cajaFormateada = `$${cajaEsperadaRestaurada.toLocaleString('es-CO', {maximumFractionDigits: 0})}`; // ← AGREGADO
         
         const mensajeReversa = `
 🔄 COMPRA REVERSADA EXITOSAMENTE
@@ -1252,6 +1256,7 @@ async function reversarCompra() {
 Producto: [${codigo}] ${producto}
 Monto reversado: ${valorFormateado}
 Stock restaurado a: ${stockAnterior}
+💼 Caja esperada: ${cajaFormateada}
 
 ✅ Todos los cambios han sido revertidos
         `.trim();
