@@ -996,6 +996,22 @@ ${fechaActual}
         `.trim();
         
         mostrarExito(mensajeExito);
+
+        // Guardar datos para posible reversa
+        window.ultimaCompra = {
+            movimientoId: movimientoData[0].movimiento_id,
+            productoId: productoSeleccionado.producto_id,
+            unidadesIngresadas,
+            stockAnterior,
+            nuevoStock,
+            costoAnterior: productoSeleccionado.costo,
+            nuevoCosto,
+            valorTotal,
+            cajaEsperada,
+            fechaSQL,
+            producto: productoSeleccionado.producto,
+            codigo: productoSeleccionado.codigo
+        };
         
         // Ocultar formulario y mostrar botón de nueva compra
 document.getElementById('compraForm').classList.add('hidden');
@@ -1011,6 +1027,18 @@ if (!btnNuevaCompra) {
     successDiv.insertAdjacentElement('afterend', btnNuevaCompra);
 }
 btnNuevaCompra.classList.remove('hidden');
+
+   // Crear botón de reversa si no existe
+let btnReversar = document.getElementById('btnReversar');
+if (!btnReversar) {
+    btnReversar = document.createElement('button');
+    btnReversar.id = 'btnReversar';
+    btnReversar.textContent = '🔄 Reversar Compra';
+    btnReversar.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+    btnReversar.onclick = reversarCompra;
+    btnNuevaCompra.insertAdjacentElement('afterend', btnReversar);
+}
+btnReversar.classList.remove('hidden');
 
 // Recargar productos para actualizar stock
 cargarProductos();
@@ -1028,6 +1056,8 @@ cargarProductos();
     mostrarError('Error al registrar la compra: ' + error.message);
     submitBtn.disabled = false;
     submitBtn.textContent = 'Registrar Compra';
+    // Limpiar datos de última compra
+    window.ultimaCompra = null;
 }
 }
         
@@ -1063,9 +1093,186 @@ function resetearFormulario() {
     document.getElementById('compraForm').classList.remove('hidden');
     submitBtn.classList.remove('hidden');
     document.getElementById('btnNuevaCompra')?.classList.add('hidden');
+    document.getElementById('btnReversar')?.classList.add('hidden');
     
     // Focus en el input de producto
     productoInput.focus();
+}
+        // ============================================
+// REVERSAR COMPRA
+// ============================================
+async function reversarCompra() {
+    if (!window.ultimaCompra) {
+        mostrarError('No hay compra para reversar');
+        return;
+    }
+    
+    // Confirmar acción
+    if (!confirm('⚠️ ¿Estás seguro de reversar esta compra?\n\nEsto deshará todos los cambios realizados:\n- Stock del producto\n- Costo unitario\n- Caja diaria')) {
+        return;
+    }
+    
+    const btnReversar = document.getElementById('btnReversar');
+    btnReversar.disabled = true;
+    btnReversar.textContent = 'Reversando...';
+    
+    try {
+        const { 
+            movimientoId, 
+            productoId, 
+            stockAnterior, 
+            costoAnterior, 
+            valorTotal, 
+            fechaSQL,
+            producto,
+            codigo
+        } = window.ultimaCompra;
+        
+        console.log('🔄 Iniciando reversa de compra...');
+        
+        // ============================================
+        // PASO 1: Marcar movimiento como inactivo
+        // ============================================
+        const updateMovimientoResponse = await fetch(
+            `${SUPABASE_URL}/rest/v1/movimientos_inventario?movimiento_id=eq.${movimientoId}`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                    activo: false,
+                    updated_at: new Date().toISOString(),
+                    observacion: 'Movimiento reversado'
+                })
+            }
+        );
+        
+        if (!updateMovimientoResponse.ok) {
+            throw new Error('Error marcando movimiento como inactivo');
+        }
+        
+        console.log('✅ Movimiento marcado como inactivo');
+        
+        // ============================================
+        // PASO 2: Restaurar stock y costo del producto
+        // ============================================
+        const restaurarProductoResponse = await fetch(
+            `${SUPABASE_URL}/rest/v1/productos?producto_id=eq.${productoId}`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                    stock_actual: stockAnterior,
+                    costo: costoAnterior,
+                    updated_at: new Date().toISOString(),
+                    updated_by: datosUsuario.user_id
+                })
+            }
+        );
+        
+        if (!restaurarProductoResponse.ok) {
+            throw new Error('Error restaurando stock del producto');
+        }
+        
+        console.log('✅ Stock restaurado:', stockAnterior);
+        
+        // ============================================
+        // PASO 3: Restaurar caja diaria
+        // ============================================
+        
+        // Obtener caja actual
+        const cajaResponse = await fetch(
+            `${SUPABASE_URL}/rest/v1/caja_diaria?tenant_id=eq.${tenantId}&fecha=eq.${fechaSQL}&select=*`,
+            {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            }
+        );
+        
+        if (!cajaResponse.ok) {
+            throw new Error('Error obteniendo caja diaria');
+        }
+        
+        const cajaData = await cajaResponse.json();
+        
+        if (cajaData.length > 0) {
+            const cajaActual = cajaData[0];
+            const comprasActuales = parseFloat(cajaActual.compras_totales) || 0;
+            const nuevasCompras = comprasActuales - valorTotal;
+            
+            const baseInicial = parseFloat(cajaActual.base_inicial) || 0;
+            const ventasTotales = parseFloat(cajaActual.ventas_totales) || 0;
+            const gastosTotales = parseFloat(cajaActual.gastos_totales) || 0;
+            
+            const cajaEsperadaRestaurada = baseInicial + ventasTotales - gastosTotales - nuevasCompras;
+            
+            const updateCajaResponse = await fetch(
+                `${SUPABASE_URL}/rest/v1/caja_diaria?id=eq.${cajaActual.id}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        compras_totales: nuevasCompras,
+                        caja_esperada: cajaEsperadaRestaurada,
+                        updated_at: new Date().toISOString()
+                    })
+                }
+            );
+            
+            if (!updateCajaResponse.ok) {
+                throw new Error('Error restaurando caja diaria');
+            }
+            
+            console.log('✅ Caja restaurada');
+        }
+        
+        // ============================================
+        // PASO 4: Mostrar confirmación
+        // ============================================
+        const valorFormateado = `$${valorTotal.toLocaleString('es-CO', {maximumFractionDigits: 0})}`;
+        
+        const mensajeReversa = `
+🔄 COMPRA REVERSADA EXITOSAMENTE
+
+Producto: [${codigo}] ${producto}
+Monto reversado: ${valorFormateado}
+Stock restaurado a: ${stockAnterior}
+
+✅ Todos los cambios han sido revertidos
+        `.trim();
+        
+        mostrarExito(mensajeReversa);
+        
+        // Limpiar datos de última compra
+        window.ultimaCompra = null;
+        
+        // Ocultar botón de reversar
+        btnReversar.classList.add('hidden');
+        
+        // Recargar productos
+        await cargarProductos();
+        
+    } catch (error) {
+        console.error('❌ Error reversando compra:', error);
+        mostrarError('Error al reversar la compra: ' + error.message);
+        btnReversar.disabled = false;
+        btnReversar.textContent = '🔄 Reversar Compra';
+    }
 }
         
         // Cerrar autocomplete al hacer click afuera
