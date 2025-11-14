@@ -619,8 +619,20 @@ function calcularUnidadesIngresadas(producto, cantidad, unidadMedida) {
             // Con factor
             unidadesIngresadas = cantidad * factor;
         }
+    } else if (tipoVenta === 'medida') {
+        // Productos por medida (metros, pulgadas, etc.)
+        const unidadMedidaNorm = unidadMedida.toLowerCase().replace(/s$/, '');
+        const unidadPesoNorm = unidadPeso.toLowerCase().replace(/s$/, '');
+        
+        if (unidadMedidaNorm === unidadPesoNorm) {
+            // Unidad directa
+            unidadesIngresadas = cantidad;
+        } else {
+            // Con factor (ej: 1 rollo = 50 metros)
+            unidadesIngresadas = cantidad * factor;
+        }
     } else {
-        // Productos por unidad
+        // Productos por unidad (tipo_venta === 'unidad')
         if (unidadMedida === 'unidades' || unidadMedida === 'unidad') {
             unidadesIngresadas = cantidad;
         } else {
@@ -635,7 +647,8 @@ function calcularUnidadesIngresadas(producto, cantidad, unidadMedida) {
         nuevoStock,
         stockAnterior: stockActual
     };
-}        
+}
+       
         // Validar que todos los campos estén llenos
         function validarFormulario() {
             if (!productoSeleccionado) {
@@ -952,19 +965,22 @@ console.log('✅ Caja diaria creada');
         // ============================================
         
         // Determinar unidad de stock según tipo de venta
-        let unidadStock;
-        let stockFormateado;
-        
-        if (productoSeleccionado.tipo_venta === 'unidad') {
-            unidadStock = 'und';
-            stockFormateado = Math.round(nuevoStock);
-        } else if (productoSeleccionado.tipo_venta === 'peso') {
-            unidadStock = productoSeleccionado.unidad_peso || 'libras';
-            stockFormateado = nuevoStock.toFixed(2);
-        } else {
-            unidadStock = 'und';
-            stockFormateado = Math.round(nuevoStock);
-        }
+let unidadStock;
+let stockFormateado;
+
+if (productoSeleccionado.tipo_venta === 'unidad') {
+    unidadStock = 'und';
+    stockFormateado = Math.round(nuevoStock);
+} else if (productoSeleccionado.tipo_venta === 'peso') {
+    unidadStock = productoSeleccionado.unidad_peso || 'libras';
+    stockFormateado = nuevoStock.toFixed(2);
+} else if (productoSeleccionado.tipo_venta === 'medida') {
+    unidadStock = productoSeleccionado.unidad_peso || 'metros';
+    stockFormateado = nuevoStock.toFixed(2);
+} else {
+    unidadStock = 'und';
+    stockFormateado = Math.round(nuevoStock);
+}
         
         const valorFormateado = `$${valorTotal.toLocaleString('es-CO', {maximumFractionDigits: 0})}`;
         const cajaFormateada = `$${cajaEsperada.toLocaleString('es-CO', {maximumFractionDigits: 0})}`;
